@@ -1,0 +1,145 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  name      String?
+  image     String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  // User preferences
+  favoriteDriver   String?
+  favoriteTeam     String?
+  notificationsOn  Boolean   @default(true)
+  isPremium        Boolean   @default(false)
+  premiumUntil     DateTime?
+  theme            String    @default("dark")
+
+  // Relations
+  posts        Post[]
+  comments     Comment[]
+  likes        Like[]
+  bookmarks    Bookmark[]
+  predictions  Prediction[]
+  reactions    Reaction[]
+
+  @@map("users")
+}
+
+model Post {
+  id        String     @id @default(cuid())
+  title     String
+  content   String     @db.Text
+  slug      String     @unique
+  category  String     // "Transfer", "Result", "Drama", "Technical"
+  image     String?
+  source    String?    // External source URL
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  publishedAt DateTime?
+
+  // Author
+  authorId  String
+  author    User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  // Relations
+  comments  Comment[]
+  likes     Like[]
+  bookmarks Bookmark[]
+
+  @@map("posts")
+}
+
+model Comment {
+  id        String     @id @default(cuid())
+  content   String     @db.Text
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  // Post
+  postId    String
+  post      Post       @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  // Author
+  authorId  String
+  author    User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  // Relations
+  reactions Reaction[]
+
+  @@map("comments")
+}
+
+model Like {
+  id        String     @id @default(cuid())
+  createdAt DateTime   @default(now())
+
+  // Post
+  postId    String
+  post      Post       @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  // User
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@map("likes")
+}
+
+model Bookmark {
+  id        String     @id @default(cuid())
+  createdAt DateTime   @default(now())
+
+  // Post
+  postId    String
+  post      Post       @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  // User
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@map("bookmarks")
+}
+
+model Prediction {
+  id        String     @id @default(cuid())
+  raceId    String
+  prediction String    @db.Text
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  // User
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("predictions")
+}
+
+model Reaction {
+  id        String     @id @default(cuid())
+  type      String     // "up", "down", "fire", "love"
+  createdAt DateTime   @default(now())
+
+  // Comment
+  commentId String
+  comment   Comment    @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  // User
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, userId, type])
+  @@map("reactions")
+}
